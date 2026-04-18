@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}My Favorites{% endblock %}
+
+{% block main_dashboard_content %}
+
+<style>
+    /* --- تنسيقات صفحة المفضلة --- */
+    .fav-header { text-align: center; margin-bottom: 40px; padding-top: 20px; }
+    .fav-title { font-size: 2.5rem; font-weight: 800; margin-bottom: 10px; color: var(--text-main); }
+    .fav-subtitle { color: var(--text-muted); font-size: 1rem; }
+
+    /* الشبكة */
+    .fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; padding-bottom: 40px; }
+
+    /* البطاقة */
+    .fav-card {
+        padding: 0; overflow: hidden; display: flex; flex-direction: column;
+        transition: 0.3s; position: relative; background: rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+    .fav-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); background: white; }
+
+    /* الصورة */
+    .fav-img { width: 100%; height: 160px; object-fit: cover; background-color: #f1f5f9; }
+
+    /* المحتوى */
+    .fav-body { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
+    .fav-top-row { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
+    
+    .fav-cat-badge {
+        font-size: 0.75rem; font-weight: 700; color: var(--primary);
+        background: #EEF2FF; padding: 4px 10px; border-radius: 8px; text-transform: uppercase;
+    }
+
+    /* أزرار التحكم */
+    .btn-control {
+        border: none; width: 32px; height: 32px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: 0.2s; font-size: 1rem;
+    }
+    .btn-edit { background: #EEF2FF; color: #4F46E5; }
+    .btn-edit:hover { background: #4F46E5; color: white; }
+    .btn-delete { background: #FEF2F2; color: #EF4444; }
+    .btn-delete:hover { background: #EF4444; color: white; transform: scale(1.1); }
+
+    .fav-name { font-size: 1.2rem; font-weight: 700; margin: 0 0 8px; color: var(--text-main); }
+    .fav-address { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; display: flex; align-items: center; gap: 5px; line-height: 1.4; }
+
+    .btn-navigate {
+        margin-top: auto; display: block; text-align: center;
+        background: var(--text-main); color: white; padding: 12px;
+        border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 0.9rem;
+        transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .btn-navigate:hover { background: var(--primary); transform: translateY(-2px); }
+    
+    .empty-state { grid-column: 1 / -1; text-align: center; padding: 60px 20px; opacity: 0.7; }
+</style>
+
+<div class="fav-header">
+    <h1 class="fav-title">Your Collection</h1>
+    <p class="fav-subtitle">Places you've saved.</p>
+</div>
+
+<div class="fav-grid" id="favoritesGrid">
+    {% if favorites_list %}
+        {% for place in favorites_list %}
+            <div class="glass-panel fav-card" id="card-{{ loop.index }}">
+                
+                {% if place['custom_image'] %}
+                    <img src="{{ url_for('static', filename='uploads/' + place['custom_image']) }}" class="fav-img" alt="Custom Photo">
+                {% else %}
+                    {% set img_text = place['category'].split('.')[-1] | title if place['category'] else 'Place' %}
+                    <img src="https://placehold.co/400x250/F1F5F9/64748B?text={{ img_text }}" class="fav-img" alt="Place Image">
+                {% endif %}
+                
+                <div class="fav-body">
+                    <div class="fav-top-row">
+                        <span class="fav-cat-badge">{{ place['custom_name'] or place['place_name'] }}</span>
+                        
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn-control btn-edit" onclick="openEditModal('{{ place.fav_id }}', '{{ place.place_name }}')" title="Edit Photo/Name">
+                                ✎
+                            </button>
+                            <button class="btn-control btn-delete" onclick="removeFavorite(this, '{{ place.place_name }}')" title="Remove">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <h3 class="fav-name">{{ place['place_name'] }}</h3>
+                    
+                    <div class="fav-address">
+                        <span>📍</span>
+                        <span>{{ place['address'] or 'Address unavailable' }}</span>
+                    </div>
+
+                    <a href="http://googleusercontent.com/maps.google.com/?q={{ place['latitude'] }},{{ place['longitude'] }}" target="_blank" class="btn-navigate">
+                        Get Directions ➜
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="glass-panel empty-state">
+            <div style="font-size: 3rem; margin-bottom: 15px;">📂</div>
+            <h3>It's empty here!</h3>
+            <p>Go back to <b>Vibe Matcher</b> to discover and save cool places.</p>
+            <a href="{{ url_for('mood') }}" class="btn-primary" style="display:inline-flex; margin-top:20px; text-decoration:none;">Start Exploring</a>
+        </div>
+    {% endif %}
+</div>
+
+<div id="editModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:white; padding:30px; border-radius:16px; width:90%; max-width:400px; position:relative; box-shadow: 0 20px 50px rgba(0,0,0,0.2);">
+        <h3 style="margin-top:0; color: #0F172A;">Edit Favorite</h3>
+        
+        <form action="{{ url_for('update_favorite_details') }}" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="fav_id" id="modalFavId">
+            
+            <div style="margin-bottom:15px;">
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#334155;">Custom Name</label>
+                <input type="text" name="custom_name" id="modalPlaceName" style="width:100%; padding:10px; border:1px solid #CBD5E1; border-radius:8px;">
+            </div>
+            
+            <div style="margin-bottom:20px;">
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#334155;">Upload Photo</label>
+                <input type="file" name="custom_image" accept="image/*" style="width:100%; font-size:0.9rem;">
+            </div>
+            
+            <button type="submit" class="btn-primary" style="width:100%; justify-content:center;">Save Changes</button>
+        </form>
+
+        <button onclick="document.getElementById('editModal').style.display='none'" 
+                style="position:absolute; top:15px; right:15px; background:none; border:none; font-size:1.2rem; cursor:pointer; color:#64748B;">✕</button>
+    </div>
+</div>
+
+<script>
+    // فتح النافذة
+    function openEditModal(id, name) {
+        document.getElementById('editModal').style.display = 'flex';
+        document.getElementById('modalFavId').value = id;
+        document.getElementById('modalPlaceName').placeholder = name;
+    }
+    
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('editModal')) {
+            document.getElementById('editModal').style.display = "none";
+        }
+    }
+
+    // حذف المفضلة
+    function removeFavorite(btn, placeName) {
+        if(!confirm("Are you sure you want to remove '" + placeName + "'?")) return;
+
+        fetch('/toggle_favorite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ place_name: placeName, action: 'remove' })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const card = btn.closest('.fav-card');
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    card.remove();
+                    if (document.querySelectorAll('.fav-card').length === 0) location.reload();
+                }, 300);
+            }
+        });
+    }
+</script>
+
+{% endblock %}

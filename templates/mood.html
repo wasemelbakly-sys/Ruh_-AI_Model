@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}Vibe Matcher{% endblock %}
+
+{% block main_dashboard_content %}
+
+<style>
+    /* --- Official Corporate Style --- */
+    
+    .mood-header { text-align: center; margin-bottom: 40px; padding-top: 40px; }
+    .mood-title { font-size: 2.5rem; font-weight: 800; color: #0F172A; margin: 0 0 10px; }
+    .mood-subtitle { color: #64748B; font-size: 1rem; max-width: 600px; margin: 0 auto; line-height: 1.6; }
+
+    .control-panel {
+        background: white; border: 1px solid #E2E8F0; border-radius: 20px; padding: 50px;
+        max-width: 600px; margin: 0 auto 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        display: flex; flex-direction: column; align-items: center; gap: 30px;
+    }
+
+    .scope-switch { display: flex; background: #F1F5F9; padding: 5px; border-radius: 12px; }
+    .scope-option { padding: 10px 30px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; color: #64748B; transition: 0.2s; }
+    .scope-option.active { background: white; color: #0F172A; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+
+    .btn-scan {
+        background: #0F172A; color: white; padding: 16px 50px; border-radius: 12px;
+        font-size: 1rem; font-weight: 600; border: none; cursor: pointer;
+        display: flex; align-items: center; gap: 12px; transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    }
+    .btn-scan:hover { background: #334155; transform: translateY(-1px); }
+
+    /* Grid */
+    .results-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 25px; padding-bottom: 40px;
+    }
+
+    /* Enhanced Card */
+    .vibe-card {
+        background: white; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden;
+        transition: 0.3s; cursor: pointer; display: flex; flex-direction: column; position: relative;
+    }
+    .vibe-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.06); border-color: #CBD5E1; }
+
+    .card-img { width: 100%; height: 180px; object-fit: cover; background: #F8FAFC; }
+    .card-info { padding: 20px; display: flex; flex-direction: column; flex-grow: 1; }
+
+    /* --- New Badge Styling */
+    .recommendation-tag {
+        position: absolute; top: 15px; left: 15px;
+        padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .tag-ai { background: #4F46E5; color: white; } /* AI Top Pick */
+    .tag-vibe { background: #10B981; color: white; } /* Vibe Match */
+    .tag-new { background: #F59E0B; color: white; } /* Discovery */
+
+    .place-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .place-type { font-size: 0.75rem; font-weight: 700; color: #4F46E5; text-transform: uppercase; }
+    
+    .place-title { font-size: 1.2rem; font-weight: 800; margin: 0 0 5px; color: #0F172A; line-height: 1.3; }
+    .place-address { font-size: 0.85rem; color: #64748B; }
+
+    .btn-fav { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #E2E8F0; background: white; color: #CBD5E1; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+    .btn-fav:hover { background: #F8FAFC; }
+    .btn-fav.active { color: #EF4444; border-color: #FECACA; background: #FEF2F2; }
+
+    .loader { width: 24px; height: 24px; border: 3px solid #E2E8F0; border-top-color: #0F172A; border-radius: 50%; animation: spin 0.8s infinite linear; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #status-msg { font-size: 0.9rem; color: #64748B; font-weight: 500; margin-top: 15px; text-align: center; }
+</style>
+
+<div class="mood-header">
+    <h1 class="mood-title">Location Intelligence</h1>
+    <p class="mood-subtitle">Analyze your surroundings and discover tailored recommendations.</p>
+</div>
+
+<div class="control-panel">
+    <div class="scope-switch">
+        <div class="scope-option active" onclick="setScope('local')" id="opt-local">Current City</div>
+        <div class="scope-option" onclick="setScope('global')" id="opt-global">International</div>
+    </div>
+
+    <button class="btn-scan" onclick="startScan()" id="scanBtn">
+        <span>Analyze Location</span>
+        <div class="loader" id="btn-loader"></div>
+    </button>
+
+    <div id="status-msg"></div>
+</div>
+
+<div id="results-area">
+    <div style="text-align: center; opacity: 0.4; margin-top: 60px;">
+        <div style="font-size: 3rem; margin-bottom: 15px; filter: grayscale(1);">📡</div>
+        <p style="color: #64748B;">Waiting for analysis request...</p>
+    </div>
+</div>
+
+<script>
+    let currentScope = 'local';
+    const API_KEY = '{{ api_key }}';
+    let currentResultsData = [];
+
+    const GLOBAL_CITIES = [
+        {name: "London, UK", lat: 51.5074, lon: -0.1278}, {name: "New York, USA", lat: 40.7128, lon: -74.0060},
+        {name: "Paris, France", lat: 48.8566, lon: 2.3522}, {name: "Tokyo", lat: 35.6762, lon: 139.6503}
+    ];
+
+    function setScope(scope) {
+        currentScope = scope;
+        document.getElementById('opt-local').className = scope === 'local' ? 'scope-option active' : 'scope-option';
+        document.getElementById('opt-global').className = scope === 'global' ? 'scope-option active' : 'scope-option';
+    }
+
+    function startScan() {
+        const loader = document.getElementById('btn-loader');
+        const msg = document.getElementById('status-msg');
+        const results = document.getElementById('results-area');
+        
+        loader.style.display = 'block';
+        msg.style.display = 'block';
+        msg.textContent = "Acquiring GPS coordinates...";
+        results.style.opacity = '0.5';
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                analyzeAndFetch(pos.coords.latitude, pos.coords.longitude);
+            }, () => {
+                alert("Permission denied.");
+                loader.style.display = 'none';
+            });
+        }
+    }
+
+    async function analyzeAndFetch(lat, lon) {
+        const msg = document.getElementById('status-msg');
+        const url = `https://api.geoapify.com/v2/places?categories=commercial.shopping_mall,catering,leisure,entertainment&filter=circle:${lon},${lat},50&limit=1&apiKey=${API_KEY}`;
+        
+        let searchCategory = "catering,entertainment,tourism"; 
+        let statusText = "General Area Detected";
+
+        try {
+            msg.textContent = "Identifying location type...";
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            if (data.features.length > 0) {
+                const p = data.features[0].properties;
+                const cats = p.categories;
+                const name = p.name || "Current Location";
+
+                if (cats.some(c => c.includes('catering'))) {
+                    searchCategory = "catering.cafe,catering.restaurant";
+                    statusText = `At <b>${name}</b>: Dining Atmosphere`;
+                } else if (cats.some(c => c.includes('leisure'))) {
+                    searchCategory = "leisure.park,tourism.sights";
+                    statusText = `At <b>${name}</b>: Nature Vibe`;
+                } else {
+                    statusText = `Near <b>${name}</b>`;
+                }
+            }
+            msg.innerHTML = statusText;
+            
+            let targetLat = lat, targetLon = lon;
+            if (currentScope === 'global') {
+                const city = GLOBAL_CITIES[Math.floor(Math.random() * GLOBAL_CITIES.length)];
+                targetLat = city.lat; targetLon = city.lon;
+                msg.innerHTML += ` <br><small>Matching in ${city.name}</small>`;
+            }
+
+            fetchRecommendations(targetLat, targetLon, searchCategory);
+
+        } catch { fetchRecommendations(lat, lon, "catering"); }
+    }
+
+    async function fetchRecommendations(lat, lon, categoryStr) {
+        const loader = document.getElementById('btn-loader');
+        const results = document.getElementById('results-area');
+        const url = `https://api.geoapify.com/v2/places?categories=${categoryStr}&filter=circle:${lon},${lat},5000&limit=30&apiKey=${API_KEY}`;
+
+        try {
+            const [placesRes, prefsRes] = await Promise.all([ fetch(url), fetch('/get_user_preferences') ]);
+            const placesData = await placesRes.json();
+            const userPrefs = await prefsRes.json();
+            let allPlaces = placesData.features;
+
+            // --- AI Scoring ---
+            allPlaces.forEach(p => {
+                let weight = 1.0;
+                for (const [key, val] of Object.entries(userPrefs)) {
+                    if (p.properties.categories[0].includes(key)) weight = val;
+                }
+                p.properties.ai_score = weight;
+            });
+
+            // 1. AI Favorites 
+            let aiTopPicks = allPlaces.filter(p => p.properties.ai_score > 1.2).sort((a,b) => b.properties.ai_score - a.properties.ai_score);
+            
+            // 2. Similar Vibes 
+            let similarVibes = allPlaces.filter(p => !aiTopPicks.includes(p)).sort((a,b) => a.properties.distance - b.properties.distance);
+            
+            // 3. New Discovery 
+            let discovery = similarVibes.splice(5, similarVibes.length).sort(() => 0.5 - Math.random());
+
+            // --- دمج القائمة (AI أولاً، ثم New، ثم Similar في الآخر) ---
+            const topAI = aiTopPicks.slice(0, 3).map(p => ({...p, tag: '🔥 Top Pick (AI)', class: 'tag-ai'}));
+            const midNew = discovery.slice(0, 3).map(p => ({...p, tag: '✨ Discover New', class: 'tag-new'}));
+            const lastSimilar = similarVibes.slice(0, 3).map(p => ({...p, tag: '📍 Similar Vibe', class: 'tag-vibe'}));
+
+            let finalDisplay = [...topAI, ...midNew, ...lastSimilar];
+            
+            renderResults(finalDisplay);
+
+        } catch (e) { console.error(e); }
+        finally { loader.style.display = 'none'; results.style.opacity = '1'; }
+    }
+
+    function renderResults(places) {
+        const container = document.getElementById('results-area');
+        currentResultsData = [];
+        let html = '<div class="results-grid">';
+        
+        places.forEach((place, index) => {
+            const p = place.properties;
+            const name = p.name || "Hidden Spot";
+            
+            let type = "Place";
+            if (p.categories[0].includes('shopping')) type = "Shopping Mall";
+            else if (p.categories[0].includes('cafe')) type = "Coffee Shop";
+            else if (p.categories[0].includes('restaurant')) type = "Restaurant";
+            else if (p.categories[0].includes('park')) type = "Park";
+
+            const imgUrl = `https://placehold.co/600x400/F1F5F9/475569?text=${type}`;
+            const mapLink = `https://maps.google.com/?q=${p.lat},${p.lon}`;
+            
+            currentResultsData.push({ name: name, type: type, category: p.categories[0], url: mapLink });
+
+            html += `
+                <div class="vibe-card" onclick="handleCardClick(${index})">
+                    <span class="recommendation-tag ${place.class}">${place.tag}</span>
+                    
+                    <img src="${imgUrl}" class="card-img">
+                    <div class="card-info">
+                        <div class="place-meta">
+                            <span class="place-type">${type}</span>
+                            <button class="btn-fav" onclick="handleFav(event, this, ${index})">♥</button>
+                        </div>
+                        <h3 class="place-title">${name}</h3>
+                        <div class="place-address">
+                            <span>📍</span> ${p.city || 'Riyadh'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html + '</div>';
+    }
+
+    function handleCardClick(index) {
+        const item = currentResultsData[index];
+        fetch('/train_model', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: item.category, action: 'click' }) });
+        fetch('/add_history', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ place_name: item.name, action: 'VISITED', query_text: item.type, url: item.url }) });
+        window.open(item.url, '_blank');
+    }
+
+    function handleFav(event, btn, index) {
+        event.stopPropagation();
+        btn.classList.toggle('active');
+        const isAdded = btn.classList.contains('active');
+        const item = currentResultsData[index];
+        if (isAdded) fetch('/train_model', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: item.category, action: 'favorite' }) });
+        fetch('/toggle_favorite', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ place_name: item.name, category: item.type, action: isAdded ? 'add' : 'remove' }) });
+    }
+</script>
+{% endblock %}

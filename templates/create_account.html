@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - Ruh</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #F1F5F9;
+            background-image: radial-gradient(#CBD5E1 1px, transparent 1px);
+            background-size: 30px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .auth-card {
+            background: white;
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            border: 1px solid #E2E8F0;
+        }
+
+        .header-area { text-align: center; margin-bottom: 30px; }
+        .brand-title { font-size: 1.8rem; font-weight: 800; color: #0F172A; margin: 0; }
+        .brand-subtitle { color: #64748B; font-size: 0.9rem; margin-top: 5px; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .input-group { margin-bottom: 15px; position: relative; }
+        
+        .input-label { 
+            display: block; font-size: 0.8rem; font-weight: 600; 
+            color: #334155; margin-bottom: 5px; 
+        }
+        
+        .styled-input, .styled-select {
+            width: 100%; 
+            padding: 10px 10px 10px 35px;
+            border: 1px solid #CBD5E1; border-radius: 8px;
+            font-size: 0.9rem; color: #0F172A; background: #F8FAFC;
+            transition: 0.2s;
+        }
+        .styled-select { appearance: none; cursor: pointer; }
+        
+        .styled-input:focus, .styled-select:focus {
+            background: white; border-color: #4F46E5; outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .input-icon { 
+            position: absolute; 
+            left: 10px; 
+            top: 50%; 
+            transform: translateY(calc(-50% + 12px)); 
+            color: #94A3B8; font-size: 0.9rem; 
+        }
+        
+        .toggle-pw { 
+            position: absolute; 
+            right: 10px; 
+            top: 50%; 
+            transform: translateY(calc(-50% + 12px)); 
+            color: #94A3B8; cursor: pointer; font-size: 0.9rem; 
+        }
+
+        .btn-submit {
+            width: 100%; padding: 12px; background: #0F172A; color: white;
+            border: none; border-radius: 8px; font-weight: 600; font-size: 1rem;
+            cursor: pointer; margin-top: 10px; transition: 0.2s;
+        }
+        .btn-submit:hover { background: #1E293B; transform: translateY(-1px); }
+
+        .alert-box {
+            padding: 10px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 20px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .alert-error { background: #FEF2F2; color: #EF4444; border: 1px solid #FEE2E2; }
+        .alert-success { background: #F0FDF4; color: #16A34A; border: 1px solid #DCFCE7; }
+
+        .footer-link { text-align: center; margin-top: 20px; font-size: 0.85rem; color: #64748B; }
+        .footer-link a { color: #4F46E5; font-weight: 600; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <div class="auth-card">
+        
+        <div class="header-area">
+            <h1 class="brand-title">Join Ruh</h1>
+            <p class="brand-subtitle">Create your account to start exploring.</p>
+        </div>
+
+        {% if message %}
+            {% set raw_msg = message[0] if message is iterable and message is not string else message %}
+            {% set msg_text = raw_msg if raw_msg else '' %}
+            {% if msg_text %}
+                <div class="alert-box alert-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>{{ msg_text }}</span>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('create_account') }}" id="create-form">
+
+            <div class="form-grid">
+                <div class="input-group">
+                    <label class="input-label">First Name</label>
+                    <input type="text" name="first_name" class="styled-input" required>
+                    <i class="fas fa-user input-icon"></i>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Last Name</label>
+                    <input type="text" name="last_name" class="styled-input" required>
+                    <i class="fas fa-user input-icon"></i>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Email Address</label>
+                <input type="email" name="email" class="styled-input" placeholder="name@example.com" required>
+                <i class="fas fa-envelope input-icon"></i>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Username</label>
+                <input type="text" name="username" class="styled-input" placeholder="Choose a unique username" required>
+                <i class="fas fa-at input-icon"></i>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Password</label>
+                <input type="password" name="password" id="password" class="styled-input" required>
+                <i class="fas fa-lock input-icon"></i>
+                <i class="fas fa-eye toggle-pw" onclick="toggle('password', this)"></i>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Confirm Password</label>
+                <input type="password" name="confirm_password" id="confirm" class="styled-input" required>
+                <i class="fas fa-check-circle input-icon"></i>
+                <i class="fas fa-eye toggle-pw" onclick="toggle('confirm', this)"></i>
+            </div>
+
+            <div class="form-grid">
+                <div class="input-group">
+                    <label class="input-label">Age</label>
+                    <input type="number" name="age" class="styled-input" min="10" max="100" required>
+                    <i class="fas fa-birthday-cake input-icon"></i>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Gender</label>
+                    <select name="gender" class="styled-select" required>
+                        <option value="" disabled selected>Select</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                    <i class="fas fa-venus-mars input-icon"></i>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-submit">Create Account</button>
+        </form>
+
+        <div class="footer-link">
+            Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+        </div>
+    </div>
+    
+    <script>
+        function toggle(id, icon) {
+            const input = document.getElementById(id);
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        document.getElementById('create-form').addEventListener('submit', function(e) {
+            var pass = document.getElementById('password').value;
+            var confirm = document.getElementById('confirm');
+            if (pass !== confirm.value) {
+                e.preventDefault();
+                confirm.setCustomValidity("Passwords do not match!");
+                confirm.reportValidity();
+            } else {
+                confirm.setCustomValidity("");
+            }
+        });
+        document.getElementById('confirm').addEventListener('input', function(){ this.setCustomValidity(''); });
+    </script>
+</body>
+</html>

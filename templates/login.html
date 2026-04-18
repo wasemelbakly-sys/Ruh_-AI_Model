@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Ruh</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        /* --- تنسيق خاص لصفحة الدخول الرسمية --- */
+        body {
+            background-color: #F1F5F9; /* رمادي فاتح جداً */
+            background-image: radial-gradient(#CBD5E1 1px, transparent 1px);
+            background-size: 30px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .auth-card {
+            background: white;
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            border: 1px solid #E2E8F0;
+            text-align: center;
+        }
+
+        .brand-logo {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #0F172A;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        
+        .auth-subtitle {
+            color: #64748B;
+            font-size: 0.95rem;
+            margin-bottom: 35px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+            text-align: left;
+        }
+        
+        .input-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .styled-input {
+            width: 100%;
+            padding: 12px 15px 12px 40px; /* مسافة للأيقونة على اليسار */
+            border: 1px solid #CBD5E1;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            color: #0F172A;
+            transition: 0.2s;
+            background: #F8FAFC;
+        }
+        
+        .styled-input:focus {
+            background: white;
+            border-color: #4F46E5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            outline: none;
+        }
+
+        /* ✅ تصحيح مكان الأيقونات: في المنتصف عمودياً بالنسبة للحقل، مع إزاحة للأسفل بسبب العنوان */
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%; 
+            transform: translateY(calc(-50% + 12px)); /* 12px تعويض تقريبي لارتفاع العنوان */
+            color: #94A3B8;
+            font-size: 1rem;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(calc(-50% + 12px)); /* نفس التعويض */
+            color: #94A3B8;
+            cursor: pointer;
+        }
+
+        .btn-auth {
+            width: 100%;
+            padding: 14px;
+            background-color: #0F172A;
+            color: white;
+            font-weight: 600;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+        
+        .btn-auth:hover {
+            background-color: #1E293B;
+            transform: translateY(-1px);
+        }
+
+        .auth-footer {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: #64748B;
+            border-top: 1px solid #F1F5F9;
+            padding-top: 20px;
+        }
+        
+        .auth-footer a {
+            color: #4F46E5;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        /* التنبيهات */
+        .alert-box {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .alert-error { background: #FEF2F2; color: #EF4444; border: 1px solid #FEE2E2; }
+        .alert-success { background: #F0FDF4; color: #16A34A; border: 1px solid #DCFCE7; }
+    </style>
+</head>
+<body>
+
+    <div class="auth-card">
+        
+        <div class="brand-logo">Ruh.</div>
+        <p class="auth-subtitle">Please enter your details to sign in.</p>
+
+        {% if message %}
+            {% set raw_msg = message[0] if message is iterable and message is not string else message %}
+            {% set msg_text = raw_msg if raw_msg else '' %}
+            {% set msg_category = message[1] if message is iterable and message is not string and message|length > 1 else '' %}
+
+            {% if msg_text %}
+                <div class="alert-box {% if msg_category == 'success' or 'نجاح' in msg_text %}alert-success{% else %}alert-error{% endif %}">
+                    <i class="fas {% if msg_category == 'success' or 'نجاح' in msg_text %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+                    <span>{{ msg_text }}</span>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('login') }}">
+            
+            <div class="input-group">
+                <label class="input-label">Username</label>
+                <input type="text" name="username" class="styled-input" placeholder="Enter your username" required autocomplete="off">
+                <i class="fas fa-user input-icon"></i>
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Password</label>
+                <input type="password" name="password" id="loginPass" class="styled-input" placeholder="••••••••" required autocomplete="off">
+                <i class="fas fa-lock input-icon"></i>
+                <i class="fas fa-eye toggle-password" onclick="togglePassword('loginPass', this)"></i>
+            </div>
+
+            <button type="submit" class="btn-auth">Sign in</button>
+        </form>
+        
+        <div class="auth-footer">
+            Don't have an account? <a href="{{ url_for('create_account') }}">Create account</a>
+        </div>
+    </div>
+
+    <script>
+        function togglePassword(id, icon) {
+            const input = document.getElementById(id);
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    </script>
+</body>
+</html>
